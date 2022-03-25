@@ -18,7 +18,7 @@ export default class SuperTrans extends BasePlugin {
         super(uppy, opts);
         this.id = opts.id || 'SuperTransPlugin';
         this.type = 'md5Trans';
-        this.opts = Object.assign(opts, stDefaultOptions);
+        this.opts = Object.assign(stDefaultOptions, opts);
         /**
          *
          * @param fileIDs
