@@ -37,6 +37,7 @@ export default class SuperTrans extends BasePlugin {
                         if (fileInfo && fileInfo.id) {
                             console.debug("Set File State Finish", fileID);
                             let response = {
+                                id: fileInfo.id,
                                 uploadURL: this.uppy.getPlugin("Tus").opts.endpoint + "/" + fileInfo.id,
                                 superTrans: true
                             }
@@ -146,6 +147,7 @@ export default class SuperTrans extends BasePlugin {
             let result = {
                 id: response.uploadURL.substring(response.uploadURL.lastIndexOf("/") + 1),
                 url: response.uploadURL,
+                path: response.uploadURL.substring(this.opts.gateway.length),
                 file: file.data,
                 type: file.meta.type || file.data.type
             }

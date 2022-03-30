@@ -1,7 +1,7 @@
 {
   "name": "@elanbase/uppy-tus-iops",
   "description": "Uppy Upload Plugin By Iops",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "main": "dist/index.js",
   "scripts": {
     "build": "cross-env NODE_ENV=production webpack --progress --hide-modules"
