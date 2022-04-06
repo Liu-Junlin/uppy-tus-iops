@@ -3,7 +3,8 @@ import SparkMD5 from "spark-md5"
 
 const stDefaultOptions = {
     gateway: '',
-    md5Endpoint: '',
+    md5Endpoint: "/service-file/public/query/fingerprint/",
+    md5UploadEndpoint: "/service-file/public/fingerprint/upload",
     md5SliceSize: 1024 * 1024 * 2, //默认文件分片大小,2MB
     onUpload: null
 }
@@ -33,9 +34,10 @@ export default class SuperTrans extends BasePlugin {
                 })
                 return this.computeMd5(file)
                     .then(this.getFileInfoByMd5)
+                    .then(fileInfo => this.uploadFileByMd5(fileInfo, file.name))
                     .then(fileInfo => {
                         if (fileInfo && fileInfo.id) {
-                            console.debug("Set File State Finish", fileID);
+                            console.debug("Upload File By Md5", fileID);
                             let response = {
                                 id: fileInfo.id,
                                 uploadURL: this.uppy.getPlugin("Tus").opts.endpoint + "/" + fileInfo.id,
@@ -52,14 +54,41 @@ export default class SuperTrans extends BasePlugin {
                                 md5: fileInfo.fingerprint
                             })
                             file = this.uppy.getFile(fileID);
-                            this.uppy.emit('upload-success', file, response);
-                        } else {
-                            this.uppy.emit('preprocess-complete', file);
                         }
+                        this.uppy.emit('preprocess-complete', file);
                     }).catch((err) => console.error(err))
             })
-
             return Promise.all(promises);
+        }
+        this.uploadFileByMd5 = (fileInfo, fileName) => {
+            return new Promise((resolve, reject) => {
+                if (fileInfo && fileInfo.fingerprint) {
+                    fetch(this.opts.gateway + this.opts.md5UploadEndpoint, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded;charset=utf-8;'
+                        },
+                        body: "file_name=" + encodeURIComponent(fileName) +
+                            "&fingerprint=" + fileInfo.fingerprint +
+                            "&tenant_id=" + this.uppy.getState().meta.tenant_id +
+                            "&user_id=" + this.uppy.getState().meta.user_id +
+                            "&relation_type=" + this.uppy.getState().meta.relation_type +
+                            "&relation_target=" + this.uppy.getState().meta.relation_target +
+                            "&app_name=" + this.uppy.getState().meta.app_name
+                    })
+                        .then(response => response.json())
+                        .then(json => {
+                            if (json && json.id) {
+                                resolve(json);
+                            } else {
+                                resolve();
+                            }
+                        })
+                        .catch(() => resolve());
+                } else {
+                    resolve()
+                }
+            });
         }
         /**
          * 使用文件md5值查询文件服务器是否存在相应文件
@@ -69,7 +98,7 @@ export default class SuperTrans extends BasePlugin {
         this.getFileInfoByMd5 = (md5) => {
             return new Promise((resolve, reject) => {
                 if (md5) {
-                    fetch(this.opts.md5EndPoint + md5, {
+                    fetch(this.opts.gateway + this.opts.md5Endpoint + md5, {
                         method: 'GET'
                     })
                         .then(response => response.json())
